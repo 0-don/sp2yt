@@ -3,7 +3,7 @@
 set -e
 here="$(cd "$(dirname "$0")" && pwd)"
 if [ -n "$1" ]; then
-  exec bun "$here/cli.ts" "$@"
+  exec bun "$here/src/cli.ts" "$@"
 fi
 port="${PORT:-8477}"
 if ! curl -s -o /dev/null "http://127.0.0.1:$port/"; then

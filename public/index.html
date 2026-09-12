@@ -1,117 +1,47 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spotify to YouTube</title>
-<style>
-  :root {
-    color-scheme: dark;
-    --bg: #0d0f12;
-    --card: #16191f;
-    --line: #262b34;
-    --text: #e8eaed;
-    --muted: #98a0ad;
-    --green: #1db954;
-    --red: #ff4444;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    padding: 40px 16px 64px;
-    background: var(--bg);
-    color: var(--text);
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
-  }
-  main { max-width: 640px; margin: 0 auto; }
-  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
-  p.sub { margin: 0 0 24px; color: var(--muted); font-size: 13px; }
-  form { display: flex; gap: 8px; flex-wrap: wrap; }
-  input {
-    flex: 1 1 260px;
-    min-width: 0;
-    padding: 12px 14px;
-    border-radius: 10px;
-    border: 1px solid var(--line);
-    background: var(--card);
-    color: var(--text);
-    font: inherit;
-  }
-  input:focus { outline: 2px solid var(--green); outline-offset: -1px; }
-  button {
-    padding: 12px 20px;
-    border-radius: 10px;
-    border: 0;
-    background: var(--green);
-    color: #07120a;
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  button:disabled { opacity: 0.55; cursor: default; }
-  .status { margin: 20px 0 0; color: var(--muted); font-size: 13px; }
-  .status.error { color: var(--red); }
-  .card {
-    margin-top: 24px;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    background: var(--card);
-    padding: 18px;
-  }
-  .track { display: flex; gap: 14px; align-items: center; }
-  .track img { width: 64px; height: 64px; border-radius: 8px; flex: 0 0 auto; }
-  .track .name { font-weight: 600; }
-  .track .by { color: var(--muted); font-size: 13px; }
-  .result { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
-  .frame {
-    position: relative;
-    aspect-ratio: 16 / 9;
-    max-width: 100%;
-    border-radius: 10px;
-    overflow: hidden;
-    background: #000;
-  }
-  .frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-  .links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
-  a.pill {
-    display: inline-block;
-    padding: 8px 14px;
-    border-radius: 999px;
-    border: 1px solid var(--line);
-    color: var(--text);
-    text-decoration: none;
-    font-size: 13px;
-  }
-  a.pill:hover { border-color: var(--green); }
-  .score { color: var(--muted); font-size: 12px; margin-left: auto; }
-  details { margin-top: 16px; }
-  summary { cursor: pointer; color: var(--muted); font-size: 13px; }
-  ol { margin: 12px 0 0; padding-left: 20px; }
-  li { margin-bottom: 8px; font-size: 13px; }
-  li a { color: var(--green); }
-  li span { color: var(--muted); }
-</style>
+<meta name="description" content="Paste a Spotify track, playlist or album link and get the songs on YouTube.">
+<link rel="stylesheet" href="/tailwind.css">
 </head>
-<body>
-<main>
-  <h1>Spotify to YouTube</h1>
-  <p class="sub">Paste a Spotify track link. Get the song on YouTube.</p>
+<body class="min-h-screen bg-neutral-950 text-neutral-100 antialiased">
+<main class="mx-auto max-w-3xl px-4 py-10 sm:py-14">
 
-  <form id="form">
-    <input id="input" type="text" placeholder="https://open.spotify.com/track/..." autocomplete="off" autofocus>
-    <button id="go" type="submit">Find</button>
+  <h1 class="text-2xl font-semibold tracking-tight">Spotify to YouTube</h1>
+  <p class="mt-1 text-sm text-neutral-400">Paste a Spotify track, playlist or album link. Get the songs on YouTube.</p>
+
+  <form id="form" class="mt-6 flex flex-wrap gap-2">
+    <input id="input" type="text" autocomplete="off" autofocus
+      placeholder="https://open.spotify.com/track/..."
+      class="min-w-0 flex-1 basis-64 rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-neutral-100 placeholder:text-neutral-500 focus:border-green-500 focus:ring-2 focus:ring-green-500/40 focus:outline-none">
+    <button id="go" type="submit"
+      class="rounded-xl bg-green-500 px-5 py-3 font-semibold text-green-950 transition hover:bg-green-400 disabled:cursor-default disabled:opacity-50">
+      Find
+    </button>
   </form>
 
-  <p class="status" id="status" hidden></p>
-  <div id="out"></div>
+  <p id="status" hidden class="mt-5 text-sm text-neutral-400"></p>
+  <div id="out" class="mt-6"></div>
+
+  <footer class="mt-12 border-t border-neutral-900 pt-5 text-xs text-neutral-500">
+    Playlists and albums resolve up to 100 tracks, the limit of Spotify's public embed.
+    <a href="https://github.com/0-don/sp2yt" class="text-neutral-400 underline decoration-neutral-700 hover:text-green-400">Source on GitHub</a>
+  </footer>
 </main>
 
 <script>
 const form = document.getElementById("form");
 const input = document.getElementById("input");
 const go = document.getElementById("go");
-const status = document.getElementById("status");
+const statusLine = document.getElementById("status");
 const out = document.getElementById("out");
+
+const BATCH = 12;
+const WATCH_CAP = 50;
+const LINK_RE = /(open\.spotify\.com\/(?:intl-[a-z-]+\/)?(track|playlist|album)\/[A-Za-z0-9]{22})|^spotify:(track|playlist|album):[A-Za-z0-9]{22}$/;
 
 function esc(text) {
   return String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -123,67 +53,214 @@ function clock(ms) {
   return Math.floor(total / 60) + ":" + String(total % 60).padStart(2, "0");
 }
 
-function render(data) {
+function kindOf(value) {
+  const match = value.match(/(?:open\.spotify\.com\/(?:intl-[a-z-]+\/)?|spotify:)(track|playlist|album)/);
+  return match ? match[1] : "track";
+}
+
+function setStatus(text, tone) {
+  statusLine.hidden = !text;
+  statusLine.textContent = text || "";
+  statusLine.className = tone === "error"
+    ? "mt-5 text-sm text-red-400"
+    : "mt-5 text-sm text-neutral-400";
+}
+
+function pill(href, label) {
+  return `<a href="${esc(href)}" target="_blank" rel="noreferrer"
+    class="inline-block rounded-full border border-neutral-800 px-4 py-2 text-xs text-neutral-200 transition hover:border-green-500 hover:text-green-400">${esc(label)}</a>`;
+}
+
+function renderTrack(data) {
   const sp = data.spotify;
   const best = data.best;
-  const alts = data.alternates.map((a) =>
-    `<li><a href="${esc(a.url)}" target="_blank" rel="noreferrer">${esc(a.title)}</a>
-     <span>${esc(a.artists.join(", "))} ${clock(a.durationMs)} &middot; ${Math.round(a.score * 100)}%</span></li>`
-  ).join("");
+  const alts = data.alternates.map((a) => `
+    <li class="text-sm">
+      <a href="${esc(a.url)}" target="_blank" rel="noreferrer" class="text-green-400 hover:underline">${esc(a.title)}</a>
+      <span class="text-neutral-500">${esc(a.artists.join(", "))} ${clock(a.durationMs)} &middot; ${Math.round(a.score * 100)}%</span>
+    </li>`).join("");
 
   out.innerHTML = `
-    <div class="card">
-      <div class="track">
-        ${sp.artwork ? `<img src="${esc(sp.artwork)}" alt="">` : ""}
-        <div>
-          <div class="name">${esc(sp.title)}</div>
-          <div class="by">${esc(sp.artists.join(", "))} &middot; ${clock(sp.durationMs)}</div>
+    <section class="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+      <div class="flex items-center gap-4">
+        ${sp.artwork ? `<img src="${esc(sp.artwork)}" alt="" class="size-16 shrink-0 rounded-lg">` : ""}
+        <div class="min-w-0">
+          <div class="truncate font-semibold">${esc(sp.title)}</div>
+          <div class="truncate text-sm text-neutral-400">${esc(sp.artists.join(", "))} &middot; ${clock(sp.durationMs)}</div>
         </div>
       </div>
-      <div class="result">
-        <div class="frame">
-          <iframe src="https://www.youtube.com/embed/${esc(best.videoId)}"
+
+      <div class="mt-5 border-t border-neutral-800 pt-5">
+        <div class="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
+          <iframe class="absolute inset-0 size-full border-0" src="https://www.youtube.com/embed/${esc(best.videoId)}"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
             allowfullscreen title="${esc(best.title)}"></iframe>
         </div>
-        <div class="links">
-          <a class="pill" href="${esc(best.url)}" target="_blank" rel="noreferrer">YouTube</a>
-          <a class="pill" href="${esc(best.musicUrl)}" target="_blank" rel="noreferrer">YouTube Music</a>
-          <a class="pill" href="#" id="copy">Copy link</a>
-          <span class="score">${Math.round(best.score * 100)}% match ${clock(best.durationMs)}</span>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          ${pill(best.url, "YouTube")}
+          ${pill(best.musicUrl, "YouTube Music")}
+          <button type="button" data-copy="${esc(best.url)}"
+            class="rounded-full border border-neutral-800 px-4 py-2 text-xs text-neutral-200 transition hover:border-green-500 hover:text-green-400">Copy link</button>
+          <span class="ml-auto text-xs text-neutral-500">${Math.round(best.score * 100)}% match ${clock(best.durationMs)}</span>
         </div>
       </div>
-      ${alts ? `<details><summary>Other matches (${data.alternates.length})</summary><ol>${alts}</ol></details>` : ""}
-    </div>`;
 
-  const copy = document.getElementById("copy");
-  copy.addEventListener("click", async (event) => {
-    event.preventDefault();
-    await navigator.clipboard.writeText(best.url);
-    copy.textContent = "Copied";
-    setTimeout(() => { copy.textContent = "Copy link"; }, 1200);
-  });
+      ${alts ? `
+        <details class="mt-4">
+          <summary class="cursor-pointer text-sm text-neutral-400 hover:text-neutral-200">Other matches (${data.alternates.length})</summary>
+          <ol class="mt-3 list-decimal space-y-2 pl-5">${alts}</ol>
+        </details>` : ""}
+    </section>`;
+}
+
+function collectionShell(collection) {
+  const count = collection.tracks.length;
+  return `
+    <section class="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+      <div class="flex items-center gap-4">
+        ${collection.artwork ? `<img src="${esc(collection.artwork)}" alt="" class="size-16 shrink-0 rounded-lg">` : ""}
+        <div class="min-w-0 flex-1">
+          <div class="truncate font-semibold">${esc(collection.name)}</div>
+          <div class="truncate text-sm text-neutral-400">
+            ${esc(collection.kind)} &middot; ${count} track${count === 1 ? "" : "s"}${collection.truncated ? ", clipped at Spotify's 100 limit" : ""}
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
+        <div id="bar" class="h-full w-0 rounded-full bg-green-500 transition-all duration-300"></div>
+      </div>
+
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <span id="queues" class="flex flex-wrap gap-2"></span>
+        <button type="button" id="copyAll"
+          class="rounded-full border border-neutral-800 px-4 py-2 text-xs text-neutral-200 opacity-40 transition" disabled>Copy all links</button>
+        <span id="tally" class="ml-auto text-xs text-neutral-500">resolving 0/${count}</span>
+      </div>
+      <p id="queueNote" hidden class="mt-2 text-xs text-neutral-500">
+        YouTube queue links hold 50 videos each. Opening one creates a playlist you can save from the YouTube or YouTube Music player.
+      </p>
+
+      <ol id="rows" class="mt-5 divide-y divide-neutral-800 border-t border-neutral-800"></ol>
+    </section>`;
+}
+
+function rowMarkup(track, position) {
+  return `
+    <li id="row-${position}" class="flex items-center gap-3 py-2.5">
+      <span class="w-7 shrink-0 pr-1 text-right text-xs tabular-nums text-neutral-500">${position + 1}</span>
+      <div class="min-w-0 flex-1">
+        <div class="truncate text-sm">${esc(track.title)}</div>
+        <div class="truncate text-xs text-neutral-500">${esc(track.artists.join(", "))} &middot; ${clock(track.durationMs)}</div>
+      </div>
+      <span class="result shrink-0 text-xs text-neutral-600">waiting</span>
+    </li>`;
+}
+
+async function runTrack(value) {
+  const res = await fetch("/api/resolve?url=" + encodeURIComponent(value));
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Request failed");
+  setStatus("");
+  renderTrack(data);
+}
+
+async function runCollection(value) {
+  const res = await fetch("/api/collection?url=" + encodeURIComponent(value));
+  const collection = await res.json();
+  if (!res.ok) throw new Error(collection.error || "Request failed");
+  if (!collection.tracks.length) throw new Error("That collection has no playable tracks");
+
+  setStatus("");
+  out.innerHTML = collectionShell(collection);
+  const rows = document.getElementById("rows");
+  const bar = document.getElementById("bar");
+  const tally = document.getElementById("tally");
+  const queues = document.getElementById("queues");
+  const queueNote = document.getElementById("queueNote");
+  const copyAll = document.getElementById("copyAll");
+  rows.innerHTML = collection.tracks.map(rowMarkup).join("");
+
+  const found = [];
+  let done = 0;
+  let failed = 0;
+
+  for (let start = 0; start < collection.tracks.length; start += BATCH) {
+    const slice = collection.tracks.slice(start, start + BATCH);
+    let matches;
+    try {
+      const batchRes = await fetch("/api/match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tracks: slice }),
+      });
+      const payload = await batchRes.json();
+      if (!batchRes.ok) throw new Error(payload.error || "Batch failed");
+      matches = payload.matches;
+    } catch (err) {
+      matches = slice.map((track, index) => ({ index, best: null, error: err.message }));
+    }
+
+    for (const match of matches) {
+      const position = start + match.index;
+      const cell = document.querySelector("#row-" + position + " .result");
+      done += 1;
+      if (match.best) {
+        found.push(match.best);
+        cell.outerHTML = `
+          <a href="${esc(match.best.url)}" target="_blank" rel="noreferrer"
+            class="result shrink-0 text-xs text-green-400 hover:underline">YouTube ${Math.round(match.best.score * 100)}%</a>`;
+      } else {
+        failed += 1;
+        cell.className = "result shrink-0 text-xs text-red-400";
+        cell.textContent = "no match";
+      }
+    }
+
+    bar.style.width = Math.round((done / collection.tracks.length) * 100) + "%";
+    tally.textContent = `resolved ${done - failed}/${collection.tracks.length}` + (failed ? `, ${failed} failed` : "");
+
+    if (found.length) {
+      const chunks = [];
+      for (let at = 0; at < found.length; at += WATCH_CAP) chunks.push(found.slice(at, at + WATCH_CAP));
+      queues.innerHTML = chunks.map((chunk, position) => {
+        const ids = chunk.map((m) => m.videoId).join(",");
+        const from = position * WATCH_CAP + 1;
+        const label = chunks.length === 1 ? "Open all in YouTube" : `Open ${from} to ${from + chunk.length - 1}`;
+        return `<a href="https://www.youtube.com/watch_videos?video_ids=${ids}" target="_blank" rel="noreferrer"
+          class="rounded-full bg-green-500 px-4 py-2 text-xs font-semibold text-green-950 transition hover:bg-green-400">${label}</a>`;
+      }).join("");
+      queueNote.hidden = false;
+      copyAll.disabled = false;
+      copyAll.className = "rounded-full border border-neutral-800 px-4 py-2 text-xs text-neutral-200 transition hover:border-green-500 hover:text-green-400";
+      copyAll.dataset.copy = found.map((m) => m.url).join("\n");
+    }
+  }
 }
 
 async function run(value) {
-  status.hidden = false;
-  status.className = "status";
-  status.textContent = "Searching...";
+  setStatus("Searching...");
   out.innerHTML = "";
   go.disabled = true;
   try {
-    const res = await fetch("/api/resolve?url=" + encodeURIComponent(value));
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Request failed");
-    status.hidden = true;
-    render(data);
+    if (kindOf(value) === "track") await runTrack(value);
+    else await runCollection(value);
   } catch (err) {
-    status.className = "status error";
-    status.textContent = err.message;
+    setStatus(err.message, "error");
   } finally {
     go.disabled = false;
   }
 }
+
+document.addEventListener("click", async (event) => {
+  const trigger = event.target.closest("[data-copy]");
+  if (!trigger) return;
+  event.preventDefault();
+  await navigator.clipboard.writeText(trigger.dataset.copy);
+  const original = trigger.textContent;
+  trigger.textContent = "Copied";
+  setTimeout(() => { trigger.textContent = original; }, 1200);
+});
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -194,7 +271,7 @@ form.addEventListener("submit", (event) => {
 input.addEventListener("paste", () => {
   setTimeout(() => {
     const value = input.value.trim();
-    if (/open\.spotify\.com\/.*track\/|spotify:track:/.test(value)) run(value);
+    if (LINK_RE.test(value)) run(value);
   }, 0);
 });
 
