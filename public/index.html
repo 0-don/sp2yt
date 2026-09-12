@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spotify to YouTube</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0d0f12;
+    --card: #16191f;
+    --line: #262b34;
+    --text: #e8eaed;
+    --muted: #98a0ad;
+    --green: #1db954;
+    --red: #ff4444;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  p.sub { margin: 0 0 24px; color: var(--muted); font-size: 13px; }
+  form { display: flex; gap: 8px; flex-wrap: wrap; }
+  input {
+    flex: 1 1 260px;
+    min-width: 0;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+  }
+  input:focus { outline: 2px solid var(--green); outline-offset: -1px; }
+  button {
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: 0;
+    background: var(--green);
+    color: #07120a;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.55; cursor: default; }
+  .status { margin: 20px 0 0; color: var(--muted); font-size: 13px; }
+  .status.error { color: var(--red); }
+  .card {
+    margin-top: 24px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--card);
+    padding: 18px;
+  }
+  .track { display: flex; gap: 14px; align-items: center; }
+  .track img { width: 64px; height: 64px; border-radius: 8px; flex: 0 0 auto; }
+  .track .name { font-weight: 600; }
+  .track .by { color: var(--muted); font-size: 13px; }
+  .result { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .frame {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    max-width: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #000;
+  }
+  .frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
+  a.pill {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--text);
+    text-decoration: none;
+    font-size: 13px;
+  }
+  a.pill:hover { border-color: var(--green); }
+  .score { color: var(--muted); font-size: 12px; margin-left: auto; }
+  details { margin-top: 16px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  ol { margin: 12px 0 0; padding-left: 20px; }
+  li { margin-bottom: 8px; font-size: 13px; }
+  li a { color: var(--green); }
+  li span { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Spotify to YouTube</h1>
+  <p class="sub">Paste a Spotify track link. Get the song on YouTube.</p>
+
+  <form id="form">
+    <input id="input" type="text" placeholder="https://open.spotify.com/track/..." autocomplete="off" autofocus>
+    <button id="go" type="submit">Find</button>
+  </form>
+
+  <p class="status" id="status" hidden></p>
+  <div id="out"></div>
+</main>
+
+<script>
+const form = document.getElementById("form");
+const input = document.getElementById("input");
+const go = document.getElementById("go");
+const status = document.getElementById("status");
+const out = document.getElementById("out");
+
+function esc(text) {
+  return String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+function clock(ms) {
+  if (!ms) return "";
+  const total = Math.round(ms / 1000);
+  return Math.floor(total / 60) + ":" + String(total % 60).padStart(2, "0");
+}
+
+function render(data) {
+  const sp = data.spotify;
+  const best = data.best;
+  const alts = data.alternates.map((a) =>
+    `<li><a href="${esc(a.url)}" target="_blank" rel="noreferrer">${esc(a.title)}</a>
+     <span>${esc(a.artists.join(", "))} ${clock(a.durationMs)} &middot; ${Math.round(a.score * 100)}%</span></li>`
+  ).join("");
+
+  out.innerHTML = `
+    <div class="card">
+      <div class="track">
+        ${sp.artwork ? `<img src="${esc(sp.artwork)}" alt="">` : ""}
+        <div>
+          <div class="name">${esc(sp.title)}</div>
+          <div class="by">${esc(sp.artists.join(", "))} &middot; ${clock(sp.durationMs)}</div>
+        </div>
+      </div>
+      <div class="result">
+        <div class="frame">
+          <iframe src="https://www.youtube.com/embed/${esc(best.videoId)}"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
+            allowfullscreen title="${esc(best.title)}"></iframe>
+        </div>
+        <div class="links">
+          <a class="pill" href="${esc(best.url)}" target="_blank" rel="noreferrer">YouTube</a>
+          <a class="pill" href="${esc(best.musicUrl)}" target="_blank" rel="noreferrer">YouTube Music</a>
+          <a class="pill" href="#" id="copy">Copy link</a>
+          <span class="score">${Math.round(best.score * 100)}% match ${clock(best.durationMs)}</span>
+        </div>
+      </div>
+      ${alts ? `<details><summary>Other matches (${data.alternates.length})</summary><ol>${alts}</ol></details>` : ""}
+    </div>`;
+
+  const copy = document.getElementById("copy");
+  copy.addEventListener("click", async (event) => {
+    event.preventDefault();
+    await navigator.clipboard.writeText(best.url);
+    copy.textContent = "Copied";
+    setTimeout(() => { copy.textContent = "Copy link"; }, 1200);
+  });
+}
+
+async function run(value) {
+  status.hidden = false;
+  status.className = "status";
+  status.textContent = "Searching...";
+  out.innerHTML = "";
+  go.disabled = true;
+  try {
+    const res = await fetch("/api/resolve?url=" + encodeURIComponent(value));
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Request failed");
+    status.hidden = true;
+    render(data);
+  } catch (err) {
+    status.className = "status error";
+    status.textContent = err.message;
+  } finally {
+    go.disabled = false;
+  }
+}
+
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const value = input.value.trim();
+  if (value) run(value);
+});
+
+input.addEventListener("paste", () => {
+  setTimeout(() => {
+    const value = input.value.trim();
+    if (/open\.spotify\.com\/.*track\/|spotify:track:/.test(value)) run(value);
+  }, 0);
+});
+
+const seed = new URLSearchParams(location.search).get("url");
+if (seed) { input.value = seed; run(seed); }
+</script>
+</body>
+</html>

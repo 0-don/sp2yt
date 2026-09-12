@@ -1,0 +1,14 @@
+#!/bin/bash
+# Serve the page, or resolve one link straight to stdout: sp2yt <spotify-url>
+set -e
+here="$(cd "$(dirname "$0")" && pwd)"
+if [ -n "$1" ]; then
+  exec bun "$here/cli.ts" "$@"
+fi
+port="${PORT:-8477}"
+if ! curl -s -o /dev/null "http://127.0.0.1:$port/"; then
+  bun "$here/server.ts" &
+  sleep 1
+fi
+xdg-open "http://127.0.0.1:$port/" >/dev/null 2>&1
+wait
