@@ -1,4 +1,31 @@
 {
+  "name": "sp2yt",
+  "version": "1.0.0",
+  "description": "Paste a Spotify track link, get the song on YouTube. No API keys, one Cloudflare Worker.",
+  "license": "MIT",
+  "author": "0-don",
+  "homepage": "https://sp2yt.coding-global.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0-don/sp2yt.git"
+  },
+  "bugs": {
+    "url": "https://github.com/0-don/sp2yt/issues"
+  },
+  "keywords": [
+    "spotify",
+    "youtube",
+    "youtube-music",
+    "cloudflare-workers",
+    "music"
+  ],
+  "type": "module",
+  "private": false,
+  "scripts": {
+    "dev": "bun server.ts",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc"
+  },
   "dependencies": {},
   "devDependencies": {
     "@types/bun": "^1.4.2"
