@@ -20,6 +20,9 @@ export type YtCandidate = {
   musicUrl: string;
 };
 
+/** An upstream refused or misbehaved, as opposed to the caller sending a bad link. */
+export class UpstreamError extends Error {}
+
 export function parseSpotifyId(input: string): string {
   const text = input.trim();
   const uri = text.match(/^spotify:track:([A-Za-z0-9]{22})$/);
@@ -32,15 +35,22 @@ export function parseSpotifyId(input: string): string {
 }
 
 export async function fetchSpotifyTrack(id: string): Promise<SpotifyTrack> {
-  const res = await fetch(`https://open.spotify.com/embed/track/${id}`, {
+  let res = await fetch(`https://open.spotify.com/embed/track/${id}`, {
     headers: { "User-Agent": UA, "Accept-Language": "en" },
   });
-  if (!res.ok) throw new Error(`Spotify embed returned ${res.status}`);
+  if (res.status >= 500 || res.status === 429) {
+    await new Promise((done) => setTimeout(done, 200));
+    res = await fetch(`https://open.spotify.com/embed/track/${id}`, {
+      headers: { "User-Agent": UA, "Accept-Language": "en" },
+    });
+  }
+  if (res.status === 404) throw new Error("No such Spotify track");
+  if (!res.ok) throw new UpstreamError(`Spotify embed returned ${res.status}`);
   const html = await res.text();
   const blob = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-  if (!blob) throw new Error("Spotify embed markup changed, no __NEXT_DATA__");
+  if (!blob) throw new UpstreamError("Spotify embed markup changed, no __NEXT_DATA__");
   const entity = JSON.parse(blob[1])?.props?.pageProps?.state?.data?.entity;
-  if (!entity?.name) throw new Error("Spotify embed carried no track entity");
+  if (!entity?.name) throw new UpstreamError("Spotify embed carried no track entity");
   const sources = entity.visualIdentity?.image ?? [];
   const biggest = sources.length ? sources[sources.length - 1].url : null;
   return {
@@ -120,7 +130,7 @@ async function ytmSearch(query: string, params: string) {
       params,
     }),
   });
-  if (!res.ok) throw new Error(`YouTube Music search returned ${res.status}`);
+  if (!res.ok) throw new UpstreamError(`YouTube Music search returned ${res.status}`);
   return res.json();
 }
 
@@ -186,17 +196,33 @@ function rank(track: SpotifyTrack, candidates: YtCandidate[]): YtCandidate[] {
   return candidates.sort((a, b) => b.score - a.score);
 }
 
+async function searchShelf(query: string, params: string, attempts = 3): Promise<YtCandidate[]> {
+  let last: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return extract(await ytmSearch(query, params));
+    } catch (err) {
+      last = err;
+      // YouTube Music 403s individual edge colos sporadically; a retry usually lands elsewhere.
+      if (attempt + 1 < attempts) await new Promise((done) => setTimeout(done, 150 * (attempt + 1)));
+    }
+  }
+  throw last instanceof Error ? last : new Error(String(last));
+}
+
 export async function resolve(input: string) {
   const id = parseSpotifyId(input);
   const track = await fetchSpotifyTrack(id);
   const query = [track.artists.join(" "), track.title].filter(Boolean).join(" ");
   // EgWKAQIIAWoK... restricts the shelf to songs; the second pass keeps videos in play.
   const [songs, videos] = await Promise.all([
-    ytmSearch(query, "EgWKAQIIAWoKEAoQAxAEEAkQBQ%3D%3D").then(extract),
-    ytmSearch(query, "EgWKAQIQAWoKEAoQAxAEEAkQBQ%3D%3D").then(extract).catch(() => []),
+    searchShelf(query, "EgWKAQIIAWoKEAoQAxAEEAkQBQ%3D%3D").catch((err) => err as Error),
+    searchShelf(query, "EgWKAQIQAWoKEAoQAxAEEAkQBQ%3D%3D").catch(() => [] as YtCandidate[]),
   ]);
+  if (songs instanceof Error && !videos.length) throw new UpstreamError(songs.message);
   const merged = new Map<string, YtCandidate>();
-  for (const candidate of [...songs, ...videos]) if (!merged.has(candidate.videoId)) merged.set(candidate.videoId, candidate);
+  const found = [...(songs instanceof Error ? [] : songs), ...videos];
+  for (const candidate of found) if (!merged.has(candidate.videoId)) merged.set(candidate.videoId, candidate);
   const ranked = rank(track, [...merged.values()]).slice(0, 8);
   if (!ranked.length) throw new Error("No YouTube match found");
   return { spotify: { ...track, url: `https://open.spotify.com/track/${id}` }, query, best: ranked[0], alternates: ranked.slice(1) };

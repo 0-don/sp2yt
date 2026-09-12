@@ -1,4 +1,4 @@
-import { resolve } from "./resolve";
+import { resolve, UpstreamError } from "./resolve";
 
 const page = await Bun.file(new URL("./public/index.html", import.meta.url)).text();
 const port = Number(process.env.PORT ?? 8477);
@@ -12,7 +12,8 @@ Bun.serve({
       try {
         return Response.json(await resolve(input));
       } catch (err) {
-        return Response.json({ error: err instanceof Error ? err.message : String(err) }, { status: 400 });
+        const status = err instanceof UpstreamError ? 502 : 400;
+        return Response.json({ error: err instanceof Error ? err.message : String(err) }, { status });
       }
     }
     if (url.pathname === "/") return new Response(page, { headers: { "Content-Type": "text/html; charset=utf-8" } });
